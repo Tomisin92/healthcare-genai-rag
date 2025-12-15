@@ -1,0 +1,44 @@
+Clinic Hypertension Follow-Up Protocol
+
+Purpose
+This protocol describes a simple approach for follow-up and medication adjustment in adults with elevated blood pressure seen in the outpatient clinic. It is intended for educational and testing purposes only and does not replace clinical judgment.
+
+Initial categorization
+
+Normal blood pressure: systolic < 120 mmHg and diastolic < 80 mmHg.
+
+Elevated blood pressure: systolic 120–129 mmHg and diastolic < 80 mmHg.
+
+Stage 1 hypertension: systolic 130–139 mmHg or diastolic 80–89 mmHg.
+
+Stage 2 hypertension: systolic ≥ 140 mmHg or diastolic ≥ 90 mmHg.
+
+Follow-up schedule
+
+Elevated blood pressure: reinforce lifestyle changes; repeat visit in 6 months.
+
+Stage 1 hypertension without major cardiovascular risk factors: start or intensify lifestyle changes; consider medication; follow up every 3 months until blood pressure is controlled on two consecutive visits.
+
+Stage 1 hypertension with high cardiovascular risk, or Stage 2 hypertension: start or adjust medications and lifestyle changes; follow up every 1 month until blood pressure is controlled on two consecutive visits, then extend visits to every 3–6 months.
+
+Home blood pressure monitoring
+
+Encourage patients to check blood pressure at home several days per week, preferably at the same time of day, and bring a log to clinic visits.
+
+If home readings are consistently above target, consider earlier follow up or medication adjustment.
+
+Treatment adjustments
+
+If blood pressure remains above target at follow-up, assess adherence, lifestyle factors, and side effects.
+
+Adjust medication doses gradually or add another class of antihypertensive drug as appropriate for comorbidities.
+
+Reassess laboratory tests and secondary causes of hypertension if control remains poor despite multiple medications.
+
+Emergency thresholds
+
+If a patient has very high blood pressure with concerning symptoms such as chest pain, shortness of breath, severe headache, or neurologic deficits, advise immediate emergency evaluation rather than routine clinic follow-up.
+
+Documentation
+
+At each visit, document blood pressure values, medication list and changes, lifestyle counseling, and planned interval to next visit.

@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: healthcare-rag-service
+spec:
+  selector:
+    app: healthcare-rag
+  ports:
+    - port: 80
+      targetPort: 8000
+      protocol: TCP
+  type: LoadBalancer

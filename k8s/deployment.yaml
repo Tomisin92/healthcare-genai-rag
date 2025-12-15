@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: healthcare-rag-deployment
+  labels:
+    app: healthcare-rag
+spec:
+  replicas: 1  # Changed to 1 since you only have 1 node
+  selector:
+    matchLabels:
+      app: healthcare-rag
+  template:
+    metadata:
+      labels:
+        app: healthcare-rag
+    spec:
+      containers:
+        - name: healthcare-rag
+          image: genairagacr.azurecr.io/healthcare-genai-rag:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+          env:
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: healthcare-rag-secret
+                  key: OPENAI_API_KEY
+            - name: OPENAI_MODEL
+              value: "gpt-4o-mini"
+            - name: EMBEDDING_MODEL
+              value: "text-embedding-3-small"
+            - name: ENV
+              value: "production"
+            - name: LOG_LEVEL
+              value: "INFO"
+            - name: RAW_DOCS_DIR
+              value: "data/raw_docs"
+            - name: VECTORSTORE_DIR
+              value: "data/vectorstore"
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "1"
+              memory: "1Gi"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 30

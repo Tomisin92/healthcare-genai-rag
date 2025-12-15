@@ -1,0 +1,51 @@
+
+.env
+k8s/secret.yaml
+*.key
+*.pem
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+healthgenai-env/
+*.egg-info/
+dist/
+build/
+
+# Database
+*.db
+*.db-shm
+*.db-wal
+healthcare.db
+
+# Data directories
+data/vectorstore/
+data/raw_docs/*.pdf
+data/raw_docs/*.txt
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Docker
+.dockerignore
+
+# Azure
+.azure/
+EOF

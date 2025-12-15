@@ -1,0 +1,84 @@
+name: Healthcare RAG AKS CI-CD
+
+on:
+  push:
+    branches: [ main ]
+
+env:
+  AZURE_RESOURCE_GROUP: genai-rg
+  AZURE_AKS_NAME: genai-aks
+  AZURE_ACR_NAME: genairagacr
+  AZ_APP_IMAGE: healthcare-genai-rag
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      
+      - name: Install and test
+        run: |
+          pip install -r requirements.txt
+          # pytest  # Uncomment when you have tests
+      
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      
+      - name: Get ACR login server
+        id: acr
+        run: |
+          LOGIN_SERVER=$(az acr show --name $AZURE_ACR_NAME --query "loginServer" -o tsv)
+          echo "login_server=$LOGIN_SERVER" >> $GITHUB_OUTPUT
+      
+      - name: Build and push image
+        run: |
+          az acr login --name $AZURE_ACR_NAME
+          docker build -t ${{ steps.acr.outputs.login_server }}/${{ env.AZ_APP_IMAGE }}:${{ github.sha }} .
+          docker push ${{ steps.acr.outputs.login_server }}/${{ env.AZ_APP_IMAGE }}:${{ github.sha }}
+          
+          # Also tag as latest
+          docker tag ${{ steps.acr.outputs.login_server }}/${{ env.AZ_APP_IMAGE }}:${{ github.sha }} \
+                     ${{ steps.acr.outputs.login_server }}/${{ env.AZ_APP_IMAGE }}:latest
+          docker push ${{ steps.acr.outputs.login_server }}/${{ env.AZ_APP_IMAGE }}:latest
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      
+      - name: Get AKS credentials
+        uses: azure/aks-set-context@v3
+        with:
+          resource-group: ${{ env.AZURE_RESOURCE_GROUP }}
+          cluster-name: ${{ env.AZURE_AKS_NAME }}
+      
+      - name: Get ACR login server
+        id: acr
+        run: |
+          LOGIN_SERVER=$(az acr show --name $AZURE_ACR_NAME --query "loginServer" -o tsv)
+          echo "login_server=$LOGIN_SERVER" >> $GITHUB_OUTPUT
+      
+      - name: Deploy to AKS
+        run: |
+          # Update deployment with new image
+          kubectl set image deployment/healthcare-rag-deployment \
+            healthcare-rag=${{ steps.acr.outputs.login_server }}/${{ env.AZ_APP_IMAGE }}:${{ github.sha }}
+          
+          # Wait for rollout to complete
+          kubectl rollout status deployment/healthcare-rag-deployment
+          
+          # Verify deployment
+          kubectl get pods
+          kubectl get svc healthcare-rag-service
