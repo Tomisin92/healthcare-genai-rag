@@ -218,7 +218,7 @@ healthcare-genai-rag/
 - Never commit `.env` or `k8s/secret.yaml` files
 - Use Azure Key Vault for production secrets
 - Rotate OpenAI API keys regularly
-- Enable network policies in AKS
+- Enable network policies in AKS (Azure Kubenetes Service)
 - Use private ACR endpoints for production
 
 ## 🧹 Cleanup
