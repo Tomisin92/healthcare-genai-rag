@@ -8,7 +8,7 @@ class ChatService:
     @staticmethod
     async def chat(payload: ChatRequest) -> ChatResponse:
         logger.info(f"[Healthcare Chat] query={payload.query} agent={payload.use_agent}")
-
+        
         if payload.use_agent:
             result = run_agentic(payload.query)
             # For now, we don't expose context docs with agent, just answer.
@@ -17,5 +17,5 @@ class ChatService:
             result = run_rag(payload.query)
             return ChatResponse(
                 answer=result["answer"],
-                source_documents=result["context_documents"],
+                source_documents=result.get("source_documents", []),  # Fixed: changed from "context_documents"
             )

@@ -63,20 +63,30 @@ def get_rag_chain():
 
 
 def run_rag(query: str) -> Dict[str, Any]:
+    """
+    Run the RAG pipeline with the given query.
+    
+    Returns:
+        Dict containing:
+        - answer: The generated answer from the LLM
+        - source_documents: List of retrieved documents with metadata and content
+    """
     chain = get_rag_chain()
     result = chain.invoke({"input": query})
     answer = result.get("answer") or ""
 
-    context_docs = []
+    # Extract source documents from context
+    source_docs = []
     for d in result.get("context", []):
-        context_docs.append(
+        source_docs.append(
             {
                 "metadata": d.metadata,
-                "content": d.page_content[:700],
+                "content": d.page_content[:700],  # Limit content to 700 chars
             }
         )
 
     return {
         "answer": answer,
-        "context_documents": context_docs,
+        "source_documents": source_docs,  # FIXED: Changed from "context_documents"
     }
+    
