@@ -1,5 +1,4 @@
 # k8s/frontend-nginx-config.yaml
-# Nginx configuration for serving the frontend
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -26,19 +25,24 @@ data:
             add_header Cache-Control "no-cache, no-store, must-revalidate";
         }
 
-        # Enable CORS for API calls
-        add_header 'Access-Control-Allow-Origin' '*' always;
-        add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS, PUT, DELETE' always;
-        add_header 'Access-Control-Allow-Headers' 'DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization' always;
-        add_header 'Access-Control-Max-Age' 1728000 always;
+        # Enable CORS for API calls (simple version)
+        location /api/ {
+            proxy_pass http://healthcare-rag-service.default.svc.cluster.local:80;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+
+            add_header 'Access-Control-Allow-Origin' '*';
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS, PUT, DELETE';
+            add_header 'Access-Control-Allow-Headers' 'DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization';
+        }
 
         # Handle preflight requests
-        if ($request_method = 'OPTIONS') {
+        location /api/OPTIONS {
             add_header 'Access-Control-Allow-Origin' '*';
             add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS, PUT, DELETE';
             add_header 'Access-Control-Allow-Headers' 'DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization';
             add_header 'Access-Control-Max-Age' 1728000;
-            add_header 'Content-Type' 'text/plain charset=UTF-8';
+            add_header 'Content-Type' 'text/plain; charset=UTF-8';
             add_header 'Content-Length' 0;
             return 204;
         }
@@ -50,14 +54,6 @@ data:
             access_log off;
         }
 
-        # Gzip compression
-        gzip on;
-        gzip_vary on;
-        gzip_proxied any;
-        gzip_comp_level 6;
-        gzip_types text/plain text/css text/xml text/javascript application/json application/javascript application/xml+rss application/rss+xml font/truetype font/opentype application/vnd.ms-fontobject image/svg+xml;
-        gzip_disable "msie6";
-
         # Security headers
         add_header X-Frame-Options "SAMEORIGIN" always;
         add_header X-Content-Type-Options "nosniff" always;
@@ -66,7 +62,8 @@ data:
         # Health check endpoint
         location /nginx-health {
             access_log off;
+            add_header Content-Type "text/plain";
             return 200 "healthy\n";
-            add_header Content-Type text/plain;
         }
     }
+
