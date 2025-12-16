@@ -1,0 +1,80 @@
+# k8s/ingress-nginx-controller.yaml
+# NGINX Ingress Controller for Azure AKS
+# Note: This file is optional - the deployment script will install it automatically
+# You can use this file if you want to customize the ingress controller
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ingress-nginx
+  labels:
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/instance: ingress-nginx
+
+---
+# This is a simplified version - the script uses the official installation
+# For production, use: kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.8.2/deploy/static/provider/cloud/deploy.yaml
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: ingress-nginx-controller
+  namespace: ingress-nginx
+  labels:
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/instance: ingress-nginx
+    app.kubernetes.io/component: controller
+spec:
+  type: LoadBalancer
+  externalTrafficPolicy: Local
+  selector:
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/instance: ingress-nginx
+    app.kubernetes.io/component: controller
+  ports:
+  - name: http
+    port: 80
+    targetPort: http
+    protocol: TCP
+  - name: https
+    port: 443
+    targetPort: https
+    protocol: TCP
+
+---
+# ConfigMap for ingress-nginx configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ingress-nginx-controller
+  namespace: ingress-nginx
+  labels:
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/instance: ingress-nginx
+    app.kubernetes.io/component: controller
+data:
+  # Enable CORS
+  enable-cors: "true"
+  
+  # Logging
+  log-format-upstream: '$remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" $request_length $request_time [$proxy_upstream_name] [$proxy_alternative_upstream_name] $upstream_addr $upstream_response_length $upstream_response_time $upstream_status $req_id'
+  
+  # Performance tuning
+  use-gzip: "true"
+  gzip-level: "6"
+  
+  # Security
+  hide-headers: "Server,X-Powered-By"
+  
+  # Connection settings
+  upstream-keepalive-connections: "100"
+  upstream-keepalive-timeout: "60"
+  
+  # Body size
+  proxy-body-size: "50m"
+  
+  # Timeouts
+  proxy-connect-timeout: "60"
+  proxy-send-timeout: "600"
+  proxy-read-timeout: "600"
