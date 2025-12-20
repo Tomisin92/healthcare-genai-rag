@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: healthcare-frontend-deployment
+  labels:
+    app: healthcare-frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: healthcare-frontend
+  template:
+    metadata:
+      labels:
+        app: healthcare-frontend
+    spec:
+      containers:
+        - name: healthcare-frontend
+          image: genairagacr.azurecr.io/healthcare-frontend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "200m"
+              memory: "256Mi"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: healthcare-frontend-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: healthcare-frontend
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
