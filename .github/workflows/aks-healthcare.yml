@@ -83,7 +83,6 @@
 #           kubectl get pods
 #           kubectl get svc healthcare-rag-service
 
-
 name: Healthcare RAG AKS CI-CD
 
 on:
@@ -102,33 +101,33 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      
+
       - name: Install and test backend
         run: |
           pip install -r requirements.txt
           # pytest  # Uncomment when you have tests
-      
+
       - name: Azure login
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
-      
+
       - name: Get ACR login server
         id: acr
         run: |
           LOGIN_SERVER=$(az acr show --name $AZURE_ACR_NAME --query "loginServer" -o tsv)
           echo "login_server=$LOGIN_SERVER" >> $GITHUB_OUTPUT
-      
+
       - name: Build and push backend image
         run: |
           az acr login --name $AZURE_ACR_NAME
           docker build -t ${{ steps.acr.outputs.login_server }}/${{ env.BACKEND_IMAGE }}:${{ github.sha }} .
           docker push ${{ steps.acr.outputs.login_server }}/${{ env.BACKEND_IMAGE }}:${{ github.sha }}
-          
+
           # Also tag as latest
           docker tag ${{ steps.acr.outputs.login_server }}/${{ env.BACKEND_IMAGE }}:${{ github.sha }} \
                      ${{ steps.acr.outputs.login_server }}/${{ env.BACKEND_IMAGE }}:latest
@@ -138,41 +137,42 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-      
+          # IMPORTANT: matches your actual folder and lockfile
+          cache-dependency-path: frontend2/package-lock.json
+
       - name: Install frontend dependencies
         run: |
-          cd frontend
+          cd frontend2
           npm ci
-      
+
       - name: Build frontend
         run: |
-          cd frontend
+          cd frontend2
           npm run build
-      
+
       - name: Azure login
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
-      
+
       - name: Get ACR login server
         id: acr
         run: |
           LOGIN_SERVER=$(az acr show --name $AZURE_ACR_NAME --query "loginServer" -o tsv)
           echo "login_server=$LOGIN_SERVER" >> $GITHUB_OUTPUT
-      
+
       - name: Build and push frontend image
         run: |
           az acr login --name $AZURE_ACR_NAME
-          cd frontend
+          cd frontend2
           docker build -t ${{ steps.acr.outputs.login_server }}/${{ env.FRONTEND_IMAGE }}:${{ github.sha }} .
           docker push ${{ steps.acr.outputs.login_server }}/${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
-          
+
           # Also tag as latest
           docker tag ${{ steps.acr.outputs.login_server }}/${{ env.FRONTEND_IMAGE }}:${{ github.sha }} \
                      ${{ steps.acr.outputs.login_server }}/${{ env.FRONTEND_IMAGE }}:latest
@@ -183,59 +183,59 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Azure login
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
-      
+
       - name: Get AKS credentials
         uses: azure/aks-set-context@v3
         with:
           resource-group: ${{ env.AZURE_RESOURCE_GROUP }}
           cluster-name: ${{ env.AZURE_AKS_NAME }}
-      
+
       - name: Get ACR login server
         id: acr
         run: |
           LOGIN_SERVER=$(az acr show --name $AZURE_ACR_NAME --query "loginServer" -o tsv)
           echo "login_server=$LOGIN_SERVER" >> $GITHUB_OUTPUT
-      
+
       - name: Deploy backend to AKS
         run: |
           # Update backend deployment with new image
           kubectl set image deployment/healthcare-rag-deployment \
             healthcare-rag=${{ steps.acr.outputs.login_server }}/${{ env.BACKEND_IMAGE }}:${{ github.sha }}
-          
+
           # Wait for backend rollout to complete
           kubectl rollout status deployment/healthcare-rag-deployment
-      
+
       - name: Deploy frontend to AKS
         run: |
-          # Apply frontend manifests (creates if doesn't exist)
+          # Apply frontend manifests (creates if they don't exist)
           kubectl apply -f k8s/frontend-deployment.yaml
           kubectl apply -f k8s/frontend-service.yaml
-          
+
           # Update frontend deployment with new image
           kubectl set image deployment/healthcare-frontend-deployment \
             healthcare-frontend=${{ steps.acr.outputs.login_server }}/${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
-          
+
           # Wait for frontend rollout to complete
           kubectl rollout status deployment/healthcare-frontend-deployment
-      
+
       - name: Verify deployment
         run: |
           echo "=== Deployments ==="
           kubectl get deployments
-          
+
           echo "=== Pods ==="
           kubectl get pods
-          
+
           echo "=== Services ==="
           kubectl get services
-          
+
           echo "=== Backend Service ==="
           kubectl get svc healthcare-rag-service -o wide
-          
+
           echo "=== Frontend Service ==="
           kubectl get svc healthcare-frontend-service -o wide
