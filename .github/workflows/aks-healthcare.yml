@@ -239,3 +239,5 @@ jobs:
 
           echo "=== Frontend Service ==="
           kubectl get svc healthcare-frontend-service -o wide
+
+# trigger redeploy
