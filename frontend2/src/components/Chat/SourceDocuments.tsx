@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { SourceDocument } from '../../types/chat';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from './card';
 import { FileText, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '../ui/button';
 
