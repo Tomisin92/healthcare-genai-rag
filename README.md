@@ -2,55 +2,55 @@
 
 A production-ready Retrieval-Augmented Generation (RAG) system for healthcare education and clinical decision support, deployed on Azure Kubernetes Service (AKS) with full observability, latency monitoring, and alerting.
 
+**Disclaimer:** For educational use only. Not a substitute for professional medical advice.
+
 ## Overview
 
 This project combines:
 
-- A **FastAPI backend** that exposes chat and health endpoints.
-- A **vector-search RAG pipeline** over curated healthcare PDFs (e.g., hypertension and vaccination toolkits).
-- A **React + TypeScript + Vite frontend** that provides a "Healthcare AI Assistant" UI.
-- **Azure Application Insights** dashboards and log-based alerts for p90 latency.
-- **Containerized deployment** to Azure Kubernetes Service (AKS) backed by Azure Container Registry (ACR).
+- A **FastAPI backend** that exposes chat and health endpoints
+- A **vector-search RAG pipeline** over curated healthcare PDFs (e.g., hypertension and vaccination toolkits)
+- A **React + TypeScript + Vite frontend** that provides a Healthcare AI Assistant UI
+- **Azure Application Insights** dashboards and log-based alerts for p90 latency
+- **Containerized deployment** to Azure Kubernetes Service (AKS) backed by Azure Container Registry (ACR)
 
 The goal is to demonstrate a realistic, end-to-end GenAI system that you can run locally, in Docker, and on AKS.
-
-**Disclaimer:** For educational use only. Not a substitute for professional medical advice.
 
 ## Architecture
 
 ### High-Level Components
 
-**Backend (API)**
-- FastAPI application.
-- `/api/chat` RAG endpoint.
-- `/health` health-check endpoint.
-- Integrates with OpenAI GPT-4o-mini and embeddings.
-- Uses FAISS as in-process vector store.
+#### Backend (API)
+- FastAPI application
+- `/api/chat` RAG endpoint
+- `/health` health-check endpoint
+- Integrates with OpenAI GPT-4o-mini and embeddings
+- Uses FAISS as an in-process vector store
 
-**RAG / Data Layer**
-- PDF ingestion and chunking into embeddings.
-- FAISS index persisted under `data/vectorstore/`.
-- Document metadata retained for source citations (filename + page).
+#### RAG / Data Layer
+- PDF ingestion and chunking into embeddings
+- FAISS index persisted under `data/vectorstore/`
+- Document metadata retained for source citations (filename + page)
 
-**Frontend (UI)**
-- React + TypeScript + Vite SPA.
-- "RAG-Powered Healthcare Assistant" chat UI.
-- Conversation list / "New Consultation" flow.
-- Source provenance panel and downloadable chat transcripts.
-- Logic to hide sources for chitchat and "I'm not sure / no context" answers.
+#### Frontend (UI)
+- React + TypeScript + Vite SPA
+- "RAG-Powered Healthcare Assistant" chat UI
+- Conversation list / "New Consultation" flow
+- Source provenance panel and downloadable chat transcripts
+- Logic to hide sources for chitchat and "I'm not sure / no context" answers
 
-**Observability**
-- Azure Application Insights for logs, traces, and custom dimensions.
-- Percentile latency dashboards (p50, p90, p99) and request-rate charts.
-- Log-based alert rule on `p90_latency_ms` for `rag_chat_request` traces.
-- Email notifications via Azure Monitor Action Group / quick actions.
+#### Observability
+- Azure Application Insights for logs, traces, and custom dimensions
+- Percentile latency dashboards (p50, p90, p99) and request-rate charts
+- Log-based alert rule on `p90_latency_ms` for `rag_chat_request` traces
+- Email notifications via Azure Monitor Action Group / quick actions
 
-**Infrastructure / Deployment**
-- Dockerized backend.
-- Azure Container Registry (ACR) as image registry.
-- Azure Kubernetes Service (AKS) for orchestrating the API.
-- Kubernetes Deployment, Service, and Secret manifests.
-- Optional static hosting or AKS-served frontend.
+#### Infrastructure / Deployment
+- Dockerized backend
+- Azure Container Registry (ACR) as image registry
+- Azure Kubernetes Service (AKS) for orchestrating the API
+- Kubernetes Deployment, Service, and Secret manifests
+- Optional static hosting or AKS-served frontend
 
 ## Prerequisites
 
@@ -134,7 +134,6 @@ healthcare-genai-rag/
 ├── README.md
 └── LICENSE
 ```
-
 
 ## Local Development
 
@@ -315,15 +314,14 @@ curl -X POST http://$EXTERNAL_IP/api/chat/ \
 
 The backend sends structured traces to Application Insights where each chat request:
 
-- Logs a `traces` entry with `message == "rag_chat_request"`.
-- Adds `customDimensions.latency_ms` for end-to-end request latency.
-- Supports percentile latency queries and dashboards.
+- Logs a `traces` entry with `message == "rag_chat_request"`
+- Adds `customDimensions.latency_ms` for end-to-end request latency
+- Supports percentile latency queries and dashboards
 
-**Example KQL to compute p90_latency_ms:**
+Example KQL to compute `p90_latency_ms`:
 
-```kql
+```kusto
 traces
-| where timestamp > ago(15m)
 | where message == "rag_chat_request"
 | extend latency_ms = todouble(customDimensions.latency_ms)
 | where isnotnull(latency_ms)
@@ -352,12 +350,12 @@ To adjust the SLO, edit the alert rule in Azure Portal and change the threshold 
 
 ## Frontend Behavior Notes
 
-- **Conversations:** Each "New Consultation" creates a new conversation with its own message history and timestamps.
-- **Sources Panel:** For answers grounded in documents, the assistant shows a "Sources" section listing unique (filename, page) pairs.
+- **Conversations:** Each "New Consultation" creates a new conversation with its own message history and timestamps
+- **Sources Panel:** For answers grounded in documents, the assistant shows a "Sources" section listing unique (filename, page) pairs
 - **Chitchat & "I don't know" Responses:**
-  - Greetings / goodbyes are treated as chitchat and never show sources.
-  - Answers that start with "I'm not sure…" or mention that the context does not include the answer are rendered without sources to avoid misleading citations.
-- **Download Transcript:** The "Download" button exports the current conversation as a `.txt` file with timestamps and source references.
+  - Greetings/goodbyes are treated as chitchat and never show sources
+  - Answers that start with "I'm not sure…" or mention that the context does not include the answer are rendered without sources to avoid misleading citations
+- **Download Transcript:** The "Download" button exports the current conversation as a `.txt` file with timestamps and source references
 
 ## Operations
 
@@ -402,11 +400,11 @@ kubectl scale deployment healthcare-rag-deployment --replicas=3
 
 ## Security Notes
 
-- Never commit `.env`, `k8s/secret.yaml`, or any file with secrets.
-- Prefer Azure Key Vault for production secret management.
-- Use private ACR endpoints and restricted NSGs in production.
-- Enable network policies and RBAC on AKS.
-- Rotate OpenAI API keys regularly and store them securely.
+- Never commit `.env`, `k8s/secret.yaml`, or any file with secrets
+- Prefer Azure Key Vault for production secret management
+- Use private ACR endpoints and restricted NSGs in production
+- Enable network policies and RBAC on AKS
+- Rotate OpenAI API keys regularly and store them securely
 
 ## Cleanup
 
@@ -419,15 +417,180 @@ az group delete --name $RESOURCE_GROUP --yes --no-wait
 
 The frontend is based on the official React + TypeScript + Vite template with:
 
-- `@vitejs/plugin-react`
+- @vitejs/plugin-react
 - Tailwind CSS for styling
 - ESLint configured for TypeScript and React
 
 If you need stricter type-aware linting, you can extend `eslint.config` to use the `typescript-eslint` type-checked configs and optional React lint plugins.
 
+## GitHub Actions CI/CD to ACR + AKS
+
+This section adds a simple CI/CD pipeline that:
+
+- Builds and pushes the backend Docker image to Azure Container Registry (ACR) on each push to `main`
+- Deploys the new image to AKS using kubectl
+
+Use this as a starting point and harden it for production (OIDC, Key Vault, etc.) as needed.
+
+### Prerequisites for CI/CD
+
+1. GitHub repository containing this project
+2. Azure resources already created (as in sections above):
+   - Resource Group
+   - ACR (`$ACR_NAME`)
+   - AKS (`$AKS_NAME`)
+3. Service principal or Federated Credentials (recommended) to allow GitHub Actions to log in to Azure and ACR
+
+For a simple starting point, create a service principal:
+
+```bash
+az ad sp create-for-rbac \
+  --name "github-actions-aks-sp" \
+  --role contributor \
+  --scopes /subscriptions/<SUB_ID>/resourceGroups/$RESOURCE_GROUP \
+  --sdk-auth
+```
+
+This prints a JSON block; copy it.
+
+In your GitHub repo:
+- Go to **Settings → Secrets and variables → Actions → New repository secret**
+- Add:
+  - `AZURE_CREDENTIALS` – the entire JSON from `az ad sp create-for-rbac`
+  - `AZURE_SUBSCRIPTION_ID` – your subscription ID
+  - `AZURE_RESOURCE_GROUP` – genai-rg (or your name)
+  - `AZURE_AKS_NAME` – genai-aks
+  - `AZURE_ACR_NAME` – genairagacr
+
+These will be used by the workflow.
+
+### Create the GitHub Actions workflow
+
+Create the folder and file:
+
+```bash
+mkdir -p .github/workflows
+```
+
+`.github/workflows/ci-cd-aks.yml`:
+
+```yaml
+name: CI/CD - Build & Deploy to AKS
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch: {}
+
+env:
+  ACR_NAME: ${{ secrets.AZURE_ACR_NAME }}
+  RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
+  AKS_NAME: ${{ secrets.AZURE_AKS_NAME }}
+  IMAGE_NAME: healthcare-genai-rag
+  BACKEND_PATH: backend
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Azure ACR login
+        uses: azure/docker-login@v2
+        with:
+          login-server: ${{ env.ACR_NAME }}.azurecr.io
+          username: ${{ secrets.AZURE_ACR_NAME }}
+          password: ${{ secrets.AZURE_ACR_PASSWORD || '' }}
+        if: false
+      # For most setups with azure/login, Docker can login via 'az acr login'
+      - name: ACR login via az
+        run: az acr login --name $ACR_NAME
+
+      - name: Build backend image
+        working-directory: ${{ env.BACKEND_PATH }}
+        run: |
+          IMAGE_TAG=${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+          docker build -t $IMAGE_TAG .
+
+      - name: Push image
+        run: |
+          docker push $IMAGE_TAG
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build-and-push
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Get AKS credentials
+        uses: azure/aks-set-context@v4
+        with:
+          resource-group: ${{ env.RESOURCE_GROUP }}
+          cluster-name: ${{ env.AKS_NAME }}
+
+      - name: Set image in Kubernetes deployment
+        run: |
+          IMAGE_TAG=${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          kubectl set image deployment/healthcare-rag-deployment \
+            healthcare-rag=$IMAGE_TAG
+
+      - name: Verify rollout
+        run: |
+          kubectl rollout status deployment/healthcare-rag-deployment
+```
+
+**Notes:**
+
+- The backend Dockerfile is under `backend/`, so the workflow builds from there
+- The image name is set to `<ACR_NAME>.azurecr.io/healthcare-genai-rag:<commit-sha>`
+- The deployment name (`healthcare-rag-deployment`) and container name (`healthcare-rag`) must match your `k8s/deployment.yaml`
+- If you prefer, you can also apply manifests directly from the workflow (for first deployment):
+
+```yaml
+      - name: Apply Kubernetes manifests
+        run: |
+          kubectl apply -f k8s/secret.yaml
+          kubectl apply -f k8s/deployment.yaml
+          kubectl apply -f k8s/service.yaml
+```
+
+Use that once, then rely on `kubectl set image` for rolling updates.
+
+### How the pipeline works
+
+On every push to `main`:
+
+1. **Build & Push job**
+   - Logs in to Azure and ACR
+   - Builds the backend image from `backend/` and tags it with the commit SHA
+   - Pushes the image to ACR
+
+2. **Deploy job**
+   - Logs in to Azure
+   - Gets AKS context
+   - Updates the `healthcare-rag-deployment` to use the new image tag
+   - Waits for the rollout to complete
+
+If something fails, the GitHub Actions UI will show which step broke (build, push, AKS login, or rollout).
+
 ## License
 
-MIT License
+MIT License.
 
 ## Author
 
