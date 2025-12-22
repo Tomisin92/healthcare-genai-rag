@@ -69,6 +69,77 @@
 #           persistentVolumeClaim:
 #             claimName: healthcare-data-pvc
 
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: healthcare-rag-deployment
+#   labels:
+#     app: healthcare-rag
+# spec:
+#   replicas: 1
+#   selector:
+#     matchLabels:
+#       app: healthcare-rag
+#   template:
+#     metadata:
+#       labels:
+#         app: healthcare-rag
+#     spec:
+#       containers:
+#         - name: healthcare-rag
+#           image: genairagacr.azurecr.io/healthcare-genai-rag:latest
+#           imagePullPolicy: Always
+#           ports:
+#             - containerPort: 8000
+#           env:
+#             - name: OPENAI_API_KEY
+#               valueFrom:
+#                 secretKeyRef:
+#                   name: healthcare-rag-secret
+#                   key: OPENAI_API_KEY
+#             - name: OPENAI_MODEL
+#               value: "gpt-4o-mini"
+#             - name: EMBEDDING_MODEL
+#               value: "text-embedding-3-small"
+#             - name: ENV
+#               value: "production"
+#             - name: LOG_LEVEL
+#               value: "INFO"
+#             - name: RAW_DOCS_DIR
+#               value: "data/raw_docs"
+#             - name: VECTORSTORE_DIR
+#               value: "data/vectorstore"
+#             - name: APPLICATIONINSIGHTS_CONNECTION_STRING
+#               value: "InstrumentationKey=ed3a0b3d-0f60-45b1-a995-143bd1c27e23;IngestionEndpoint=https://eastus-8.in.applicationinsights.azure.com/;LiveEndpoint=https://eastus.livediagnostics.monitor.azure .com/;ApplicationId=0c954405-2765-4131-93cf-9535748291e6"
+#           resources:
+#             requests:
+#               cpu: "250m"
+#               memory: "512Mi"
+#             limits:
+#               cpu: "1"
+#               memory: "1Gi"
+#           volumeMounts:
+#             - name: healthcare-data
+#               mountPath: /app/data/vectorstore
+#               subPath: vectorstore
+#           readinessProbe:
+#             httpGet:
+#               path: /health
+#               port: 8000
+#             initialDelaySeconds: 10
+#             periodSeconds: 10
+#           livenessProbe:
+#             httpGet:
+#               path: /health
+#               port: 8000
+#             initialDelaySeconds: 30
+#             periodSeconds: 30
+#       volumes:
+#         - name: healthcare-data
+#           persistentVolumeClaim:
+#             claimName: healthcare-data-pvc
+
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -110,7 +181,7 @@ spec:
             - name: VECTORSTORE_DIR
               value: "data/vectorstore"
             - name: APPLICATIONINSIGHTS_CONNECTION_STRING
-              value: "InstrumentationKey=ed3a0b3d-0f60-45b1-a995-143bd1c27e23;IngestionEndpoint=https://eastus-8.in.applicationinsights.azure.com/;LiveEndpoint=https://eastus.livediagnostics.monitor.azure .com/;ApplicationId=0c954405-2765-4131-93cf-9535748291e6"
+              value: "InstrumentationKey=ed3a0b3d-0f60-45b1-a995-143bd1c27e23;IngestionEndpoint=https://eastus-8.in.applicationinsights.azure.com/;LiveEndpoint=https://eastus.livediagnostics.monitor.azure.com/;ApplicationId=0c954405-2765-4131-93cf-9535748291e6"
           resources:
             requests:
               cpu: "250m"
@@ -138,4 +209,3 @@ spec:
         - name: healthcare-data
           persistentVolumeClaim:
             claimName: healthcare-data-pvc
-
