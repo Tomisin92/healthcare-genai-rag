@@ -1,75 +1,220 @@
 # Healthcare GenAI RAG System
 
-A Retrieval-Augmented Generation (RAG) system for healthcare information using Azure Kubernetes Service (AKS).
+A production-ready Retrieval-Augmented Generation (RAG) system for healthcare education and clinical decision support, deployed on Azure Kubernetes Service (AKS) with full observability, latency monitoring, and alerting.
 
-## 🏗️ Architecture
+## Overview
 
-- **Backend**: FastAPI
-- **AI/ML**: OpenAI GPT-4o-mini, Text Embeddings
-- **Vector Store**: FAISS
-- **Container Registry**: Azure Container Registry (ACR)
-- **Orchestration**: Azure Kubernetes Service (AKS)
-- **Infrastructure**: Azure Cloud
+This project combines:
 
-## 📋 Prerequisites
+- A **FastAPI backend** that exposes chat and health endpoints.
+- A **vector-search RAG pipeline** over curated healthcare PDFs (e.g., hypertension and vaccination toolkits).
+- A **React + TypeScript + Vite frontend** that provides a "Healthcare AI Assistant" UI.
+- **Azure Application Insights** dashboards and log-based alerts for p90 latency.
+- **Containerized deployment** to Azure Kubernetes Service (AKS) backed by Azure Container Registry (ACR).
+
+The goal is to demonstrate a realistic, end-to-end GenAI system that you can run locally, in Docker, and on AKS.
+
+**Disclaimer:** For educational use only. Not a substitute for professional medical advice.
+
+## Architecture
+
+### High-Level Components
+
+**Backend (API)**
+- FastAPI application.
+- `/api/chat` RAG endpoint.
+- `/health` health-check endpoint.
+- Integrates with OpenAI GPT-4o-mini and embeddings.
+- Uses FAISS as in-process vector store.
+
+**RAG / Data Layer**
+- PDF ingestion and chunking into embeddings.
+- FAISS index persisted under `data/vectorstore/`.
+- Document metadata retained for source citations (filename + page).
+
+**Frontend (UI)**
+- React + TypeScript + Vite SPA.
+- "RAG-Powered Healthcare Assistant" chat UI.
+- Conversation list / "New Consultation" flow.
+- Source provenance panel and downloadable chat transcripts.
+- Logic to hide sources for chitchat and "I'm not sure / no context" answers.
+
+**Observability**
+- Azure Application Insights for logs, traces, and custom dimensions.
+- Percentile latency dashboards (p50, p90, p99) and request-rate charts.
+- Log-based alert rule on `p90_latency_ms` for `rag_chat_request` traces.
+- Email notifications via Azure Monitor Action Group / quick actions.
+
+**Infrastructure / Deployment**
+- Dockerized backend.
+- Azure Container Registry (ACR) as image registry.
+- Azure Kubernetes Service (AKS) for orchestrating the API.
+- Kubernetes Deployment, Service, and Secret manifests.
+- Optional static hosting or AKS-served frontend.
+
+## Prerequisites
 
 - Python 3.9+
+- Node.js 18+ and npm
 - Docker Desktop
 - Azure CLI
 - kubectl
-- Azure Subscription with Owner role
-- OpenAI API Key
+- Azure subscription with permissions to create ACR + AKS
+- OpenAI API key
 
-## 🚀 Quick Start
+## Folder Structure
+
+```
+healthcare-genai-rag/
+├── backend/
+│   ├── app/
+│   │   ├── api/
+│   │   │   ├── __init__.py
+│   │   │   └── routes_chat.py        # /api/chat, /health, etc.
+│   │   ├── core/
+│   │   │   ├── config.py             # settings, env handling
+│   │   │   └── logging.py            # structured logging / App Insights
+│   │   ├── models/
+│   │   │   ├── schemas.py            # Pydantic models
+│   │   │   └── rag_request.py
+│   │   ├── services/
+│   │   │   ├── rag_pipeline.py       # retrieval + LLM orchestration
+│   │   │   ├── embeddings.py         # OpenAI embedding calls
+│   │   │   └── vector_store.py       # FAISS index load/save
+│   │   ├── instrumentation/
+│   │   │   └── app_insights.py       # traces, customDimensions.latency_ms
+│   │   └── __init__.py
+│   ├── data/
+│   │   ├── raw_docs/                 # input PDFs (not committed)
+│   │   └── vectorstore/              # FAISS index artifacts
+│   ├── tests/
+│   │   └── test_chat.py
+│   ├── main.py                       # FastAPI app entrypoint
+│   ├── requirements.txt
+│   ├── Dockerfile
+│   └── .env.example
+│
+├── frontend/
+│   ├── src/
+│   │   ├── App.tsx                   # chat UI + business logic
+│   │   ├── main.tsx
+│   │   ├── types/
+│   │   │   └── chat.ts               # Conversation, Message, ChatResponse
+│   │   ├── services/
+│   │   │   └── api.ts                # axios client for /api/chat
+│   │   ├── styles/
+│   │   │   └── tailwind.css
+│   │   └── vite-env.d.ts
+│   ├── public/
+│   │   └── index.html
+│   ├── index.html
+│   ├── package.json
+│   ├── tsconfig.json
+│   ├── tsconfig.app.json
+│   ├── tsconfig.node.json
+│   ├── vite.config.ts
+│   ├── postcss.config.cjs
+│   └── tailwind.config.cjs
+│
+├── k8s/
+│   ├── deployment.yaml               # backend Deployment
+│   ├── service.yaml                  # LoadBalancer Service
+│   ├── secret.yaml.template          # OPENAI_API_KEY secret template
+│   └── ingress.yaml                  # optional ingress config
+│
+├── infra/
+│   ├── scripts/
+│   │   ├── build_push_acr.sh
+│   │   └── deploy_aks.sh
+│   └── monitors/
+│       ├── appinsights_queries.kql   # latency, error-rate, rpm queries
+│       └── dashboards.json           # Azure dashboard export (optional)
+│
+├── .gitignore
+├── README.md
+└── LICENSE
+```
+
+
+## Local Development
 
 ### 1. Clone the Repository
+
 ```bash
 git clone https://github.com/Tomisin92/healthcare-genai-rag.git
 cd healthcare-genai-rag
 ```
 
-### 2. Set Up Local Environment
+### 2. Backend Setup
+
 ```bash
-# Create virtual environment
+cd backend
+
+# Create and activate virtual environment
 python -m venv healthgenai-env
-source healthgenai-env/bin/activate  # On Windows: healthgenai-env\Scripts\activate
+
+# Windows
+healthgenai-env\Scripts\activate
+
+# macOS / Linux
+source healthgenai-env/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
 
-# Create .env file
+# Create environment file
 cp .env.example .env
-# Edit .env and add your OpenAI API key
+# Edit .env and set OPENAI_API_KEY and other settings
 ```
 
-### 3. Run Locally
-```bash
-# Start the application
-uvicorn main:app --reload
+Run the API:
 
-# Access the API
-# - API Docs: http://localhost:8000/docs
-# - Health: http://localhost:8000/health
+```bash
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-## 🐳 Docker Deployment
+**Endpoints:**
+- Swagger UI: http://localhost:8000/docs
+- Health check: http://localhost:8000/health
+- Chat: POST http://localhost:8000/api/chat
+
+### 3. Frontend Setup
+
 ```bash
-# Build Docker image
+cd ../frontend
+
+# Install Node dependencies
+npm install
+
+# Start dev server
+npm run dev
+```
+
+By default, Vite serves the UI on http://localhost:5173 and proxies API calls to the backend (configure base URL in `src/services/api.ts` if needed).
+
+## Docker Workflows
+
+### Build & Run Backend Image Locally
+
+From `backend/`:
+
+```bash
 docker build -t healthcare-genai-rag:local .
-
-# Run container
-docker run -p 8000:8000 --env-file .env healthcare-genai-rag:local
+docker run --rm -p 8000:8000 --env-file .env healthcare-genai-rag:local
 ```
 
-## ☁️ Azure AKS Deployment
+You can then point the frontend at http://localhost:8000.
 
-### 1. Azure Login & Setup
+## Azure AKS Deployment
+
+### 1. Azure Login & Environment
+
 ```bash
-# Login to Azure
+# Login
 az login
 
-# Set subscription
-az account set --subscription "your-subscription-id"
+# Select subscription
+az account set --subscription "<your-subscription-id>"
 
 # Set variables
 export RESOURCE_GROUP="genai-rg"
@@ -79,22 +224,23 @@ export LOCATION="eastus"
 ```
 
 ### 2. Create Azure Resources
+
 ```bash
-# Create resource group
+# Resource group
 az group create --name $RESOURCE_GROUP --location $LOCATION
 
-# Register providers
+# Providers
 az provider register --namespace Microsoft.ContainerRegistry
 az provider register --namespace Microsoft.ContainerService
 
-# Create ACR
+# Container registry
 az acr create \
   --resource-group $RESOURCE_GROUP \
   --name $ACR_NAME \
   --sku Basic \
   --location $LOCATION
 
-# Create AKS
+# AKS cluster
 az aks create \
   --resource-group $RESOURCE_GROUP \
   --name $AKS_NAME \
@@ -107,11 +253,14 @@ az aks create \
 ```
 
 ### 3. Build & Push Image to ACR
+
+From `backend/`:
+
 ```bash
 # Login to ACR
 az acr login --name $ACR_NAME
 
-# Get ACR login server
+# Get login server
 export ACR_LOGIN_SERVER=$(az acr show --name $ACR_NAME --query loginServer -o tsv)
 
 # Build and push
@@ -119,64 +268,124 @@ docker build -t $ACR_LOGIN_SERVER/healthcare-genai-rag:latest .
 docker push $ACR_LOGIN_SERVER/healthcare-genai-rag:latest
 ```
 
-### 4. Deploy to Kubernetes
+### 4. Deploy to AKS
+
 ```bash
-# Get AKS credentials
+# Get cluster credentials
 az aks get-credentials --resource-group $RESOURCE_GROUP --name $AKS_NAME
 
-# Create secret (replace with your OpenAI key)
+# Option A: create secret from literal
 kubectl create secret generic healthcare-rag-secret \
   --from-literal=OPENAI_API_KEY='your-openai-key-here'
 
-# Or use secret file
+# Option B: use templated secret manifest
 cp k8s/secret.yaml.template k8s/secret.yaml
-# Edit k8s/secret.yaml and add your key
+# edit k8s/secret.yaml and add OPENAI_API_KEY
 kubectl apply -f k8s/secret.yaml
 
-# Deploy application
+# Deploy workload
 kubectl apply -f k8s/deployment.yaml
 kubectl apply -f k8s/service.yaml
+# optional
+# kubectl apply -f k8s/ingress.yaml
 
 # Check status
 kubectl get all
-
-# Get external IP
 kubectl get svc healthcare-rag-service
 ```
 
-### 5. Test the Deployment
+### 5. Test the Deployed API
+
 ```bash
-# Get external IP
+# External IP
 EXTERNAL_IP=$(kubectl get svc healthcare-rag-service -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 
-# Test health endpoint
+# Health
 curl http://$EXTERNAL_IP/health
 
-# Test chat endpoint
+# Chat
 curl -X POST http://$EXTERNAL_IP/api/chat/ \
   -H "Content-Type: application/json" \
   -d '{"query": "What are the symptoms of diabetes?"}'
 ```
 
-## 🛠️ Management Commands
+## Monitoring & Alerts (Application Insights)
 
-### Start/Stop AKS Cluster
+### Logging & Metrics
+
+The backend sends structured traces to Application Insights where each chat request:
+
+- Logs a `traces` entry with `message == "rag_chat_request"`.
+- Adds `customDimensions.latency_ms` for end-to-end request latency.
+- Supports percentile latency queries and dashboards.
+
+**Example KQL to compute p90_latency_ms:**
+
+```kql
+traces
+| where timestamp > ago(15m)
+| where message == "rag_chat_request"
+| extend latency_ms = todouble(customDimensions.latency_ms)
+| where isnotnull(latency_ms)
+| summarize p90_latency_ms = percentiles(latency_ms, 90)
+```
+
+### Dashboards
+
+Create an Azure Dashboard tile using the above query (and similar ones for p50, p99, and requests per minute) to visualize latency over time.
+
+### Log Alert: p90 Latency High
+
+A log-based alert rule `rag-p90-latency-high` monitors `p90_latency_ms` and sends email when latency breaches the SLO:
+
+- **Scope:** genai-healthcare-appinsights
+- **Signal type:** Custom log search (Log search)
+- **Measure:** p90_latency_ms
+- **Aggregation:** Average over 5 minutes
+- **Condition:** p90_latency_ms > 6000 ms
+- **Evaluation period:** 15 minutes
+- **Frequency:** 5 minutes
+- **Severity:** 3 – Informational
+- **Actions:** Email to configured address via Azure Monitor quick actions or Action Group
+
+To adjust the SLO, edit the alert rule in Azure Portal and change the threshold value.
+
+## Frontend Behavior Notes
+
+- **Conversations:** Each "New Consultation" creates a new conversation with its own message history and timestamps.
+- **Sources Panel:** For answers grounded in documents, the assistant shows a "Sources" section listing unique (filename, page) pairs.
+- **Chitchat & "I don't know" Responses:**
+  - Greetings / goodbyes are treated as chitchat and never show sources.
+  - Answers that start with "I'm not sure…" or mention that the context does not include the answer are rendered without sources to avoid misleading citations.
+- **Download Transcript:** The "Download" button exports the current conversation as a `.txt` file with timestamps and source references.
+
+## Operations
+
+### Start / Stop AKS Cluster
+
 ```bash
-# Stop cluster (save costs)
+# Stop (save cost)
 az aks stop --resource-group $RESOURCE_GROUP --name $AKS_NAME
 
-# Start cluster
+# Start
 az aks start --resource-group $RESOURCE_GROUP --name $AKS_NAME
 ```
 
-### View Logs
+### Logs & Troubleshooting
+
 ```bash
+# Backend logs
 kubectl logs -f deployment/healthcare-rag-deployment
+
+# Describe pods / services
+kubectl describe pod <pod-name>
+kubectl describe svc healthcare-rag-service
 ```
 
-### Update Deployment
+### Rolling Updates
+
 ```bash
-# Build new version
+# Build and push new image
 docker build -t $ACR_LOGIN_SERVER/healthcare-genai-rag:v2 .
 docker push $ACR_LOGIN_SERVER/healthcare-genai-rag:v2
 
@@ -185,56 +394,41 @@ kubectl set image deployment/healthcare-rag-deployment \
   healthcare-rag=$ACR_LOGIN_SERVER/healthcare-genai-rag:v2
 ```
 
-### Scale Application
+### Scaling
+
 ```bash
 kubectl scale deployment healthcare-rag-deployment --replicas=3
 ```
 
-## 📁 Project Structure
-```
-healthcare-genai-rag/
-├── app/
-│   ├── api/
-│   ├── core/
-│   ├── models/
-│   └── services/
-├── data/
-│   ├── raw_docs/
-│   └── vectorstore/
-├── k8s/
-│   ├── deployment.yaml
-│   ├── service.yaml
-│   └── secret.yaml.template
-├── tests/
-├── .env.example
-├── .gitignore
-├── Dockerfile
-├── requirements.txt
-└── README.md
-```
+## Security Notes
 
-## 🔒 Security Notes
+- Never commit `.env`, `k8s/secret.yaml`, or any file with secrets.
+- Prefer Azure Key Vault for production secret management.
+- Use private ACR endpoints and restricted NSGs in production.
+- Enable network policies and RBAC on AKS.
+- Rotate OpenAI API keys regularly and store them securely.
 
-- Never commit `.env` or `k8s/secret.yaml` files
-- Use Azure Key Vault for production secrets
-- Rotate OpenAI API keys regularly
-- Enable network policies in AKS (Azure Kubenetes Service)
-- Use private ACR endpoints for production
+## Cleanup
 
-## 🧹 Cleanup
 ```bash
-# Delete all Azure resources
+# Delete all Azure resources for this project
 az group delete --name $RESOURCE_GROUP --yes --no-wait
 ```
 
-## 📝 License
+## Development Notes (Frontend)
+
+The frontend is based on the official React + TypeScript + Vite template with:
+
+- `@vitejs/plugin-react`
+- Tailwind CSS for styling
+- ESLint configured for TypeScript and React
+
+If you need stricter type-aware linting, you can extend `eslint.config` to use the `typescript-eslint` type-checked configs and optional React lint plugins.
+
+## License
 
 MIT License
 
-## 👤 Author
+## Author
 
-Tomisin - [GitHub](https://github.com/Tomisin92)
-
-## 🤝 Contributing
-
-Contributions, issues, and feature requests are welcome!
+**Tomisin** – [GitHub](https://github.com/Tomisin92)
